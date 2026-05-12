@@ -9,8 +9,26 @@ import json
 import os
 import time
 import urllib.request
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import jwt  # PyJWT
+
+
+def format_expiry(iso_utc: str) -> list[str]:
+    """Render the token expiry across UTC, UK and Germany time zones for the demo audience."""
+    # GitHub returns ISO 8601 with trailing 'Z' for UTC
+    dt = datetime.fromisoformat(iso_utc.replace("Z", "+00:00"))
+    zones = [
+        ("UTC",     ZoneInfo("UTC")),
+        ("UK",      ZoneInfo("Europe/London")),
+        ("Germany", ZoneInfo("Europe/Berlin")),
+    ]
+    lines = []
+    for label, tz in zones:
+        local = dt.astimezone(tz)
+        lines.append(f"    {label:<8} {local.strftime('%Y-%m-%d %H:%M:%S %Z (%z)')}")
+    return lines
 
 
 def main():
@@ -46,7 +64,10 @@ def main():
     print(" GitHub App installation token issued")
     print("=" * width)
     print(f"  token:                {token}")
-    print(f"  expires_at:           {expires}")
+    print(f"  expires_at (raw):     {expires}")
+    print(f"  expires_at by zone:")
+    for line in format_expiry(expires):
+        print(line)
     print(f"  repository_selection: {body['repository_selection']}")
     print(f"  permissions:")
     for k, v in sorted(body["permissions"].items()):
